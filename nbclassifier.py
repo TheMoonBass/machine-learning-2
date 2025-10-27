@@ -79,4 +79,3 @@ with open('indexes/testing_index.json') as f2:
                     best_category_prob = total_prob
                     best_category = pot_category
             print(f'File is: {file_name} -- Predicted Category: {best_category} with probability = {best_category_prob} -- True Category: {category}')
-
