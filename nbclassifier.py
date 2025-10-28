@@ -1,9 +1,11 @@
-import os
-import random as rand
 from pathlib import Path
 import json
 import re
 from collections import Counter, defaultdict
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.metrics import confusion_matrix
+import numpy as np
 
 # Functions
 def findAllWords(text):
@@ -18,7 +20,7 @@ def calcConditionalProbs(words: list, counts: Counter):
             p_xi_given_y = word_count / total_word_counts
         else:
             p_xi_given_y = 1 / total_word_counts
-        prob *= p_xi_given_y
+        prob *= (p_xi_given_y * 10000)
     return prob
 
 # Configs
@@ -62,6 +64,7 @@ with open("indexes/training_index.json") as f:
 with open('indexes/testing_index.json') as f2:
     test_index = json.load(f2)
     categories = category_counts.keys()
+    results = []
     for category, file_list in test_index.items():
         for file_name in file_list:
             best_category = 'NONE'
@@ -71,11 +74,34 @@ with open('indexes/testing_index.json') as f2:
             words = findAllWords(text)
 
             prior = 0.05
-
+            
             for pot_category in categories:
                 product = calcConditionalProbs(words, category_counts[pot_category])
                 total_prob = prior * product
                 if total_prob > best_category_prob:
                     best_category_prob = total_prob
                     best_category = pot_category
-            print(f'File is: {file_name} -- Predicted Category: {best_category} with probability = {best_category_prob} -- True Category: {category}')
+            results.append((category, best_category))
+
+    total_correct = 0
+    for cat, pred in results:
+        if cat == pred:
+            total_correct += 1
+    
+    total_results = len(results)
+    total_acc = total_correct / total_results
+    print(f'Total Accuracy: {total_acc:.2%}')
+
+    true_labels = [t for t, _ in results]
+    pred_labels = [p for _, p in results]
+    cats = sorted(set(true_labels) | set(pred_labels))
+
+    cm = confusion_matrix(true_labels, pred_labels, labels=cats)
+
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(cm, xticklabels=cats, yticklabels=cats,
+                cmap='Blues', annot=False)
+    plt.xlabel("Predicted")
+    plt.ylabel("True")
+    plt.title("Naive Bayes Confusion Matrix")
+    plt.show()
